@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alyx
+  labels:
+    name: alyx
+    app.kubernetes.io/name: alyx-distributed-orchestrator
+    app.kubernetes.io/version: "1.0.0"

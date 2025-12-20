@@ -1,0 +1,64 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/alyx
+    username: alyx_user
+    password: alyx_password
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+
+  redis:
+    host: redis-node-1
+    port: 7001
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 1
+        max-wait: 1000ms
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: false
+    clean-disabled: true
+
+# Docker-specific performance settings
+alyx:
+  data-processing:
+    batch-size: 500
+    max-concurrent-jobs: 5
+    cache-ttl-seconds: 1800
+    performance:
+      materialized-view-refresh-interval: 1800 # 30 minutes in Docker
+      connection-pool-warning-threshold: 15
+      connection-pool-critical-threshold: 18
+
+logging:
+  level:
+    com.alyx: INFO
+    org.flywaydb: INFO
+    org.hibernate.SQL: WARN
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

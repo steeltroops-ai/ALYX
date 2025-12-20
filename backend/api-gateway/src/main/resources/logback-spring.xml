@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Console appender for development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <mdc/>
+                <message/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- File appender for application logs -->
+    <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/alyx-gateway-application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/alyx-gateway-application.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <mdc/>
+                <message/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "service": "api-gateway",
+                            "environment": "${ENVIRONMENT:-development}",
+                            "version": "${APPLICATION_VERSION:-1.0.0}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- Security audit log appender -->
+    <appender name="SECURITY_AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/alyx-gateway-security-audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/alyx-gateway-security-audit.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>90</maxHistory> <!-- Keep security logs longer -->
+            <totalSizeCap>50GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <mdc/>
+                <message/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "service": "api-gateway",
+                            "logType": "security-audit",
+                            "environment": "${ENVIRONMENT:-development}",
+                            "version": "${APPLICATION_VERSION:-1.0.0}",
+                            "compliance": {
+                                "gdpr": true,
+                                "iso27001": true,
+                                "soc2": true
+                            }
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- Security alert log appender -->
+    <appender name="SECURITY_ALERT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/alyx-gateway-security-alerts.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/alyx-gateway-security-alerts.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>50MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>365</maxHistory> <!-- Keep alert logs for a year -->
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <mdc/>
+                <message/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "service": "api-gateway",
+                            "logType": "security-alert",
+                            "environment": "${ENVIRONMENT:-development}",
+                            "version": "${APPLICATION_VERSION:-1.0.0}",
+                            "alertLevel": "HIGH",
+                            "requiresAction": true
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- Access log appender -->
+    <appender name="ACCESS_LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/alyx-gateway-access.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/alyx-gateway-access.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>200MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <mdc/>
+                <message/>
+                <pattern>
+                    <pattern>
+                        {
+                            "service": "api-gateway",
+                            "logType": "access-log",
+                            "environment": "${ENVIRONMENT:-development}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- Async appenders for better performance -->
+    <appender name="ASYNC_APPLICATION" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="APPLICATION_FILE"/>
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+    
+    <appender name="ASYNC_SECURITY_AUDIT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="SECURITY_AUDIT_FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <neverBlock>false</neverBlock> <!-- Never drop security logs -->
+    </appender>
+    
+    <appender name="ASYNC_SECURITY_ALERT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="SECURITY_ALERT_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <neverBlock>false</neverBlock> <!-- Never drop alert logs -->
+    </appender>
+    
+    <!-- Logger configurations -->
+    <logger name="com.alyx.gateway" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+    </logger>
+    
+    <!-- Security audit logger -->
+    <logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_SECURITY_AUDIT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- Security alert logger -->
+    <logger name="SECURITY_ALERT" level="WARN" additivity="false">
+        <appender-ref ref="ASYNC_SECURITY_ALERT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- Access log logger -->
+    <logger name="ACCESS_LOG" level="INFO" additivity="false">
+        <appender-ref ref="ACCESS_LOG_FILE"/>
+    </logger>
+    
+    <!-- Spring Security debug logging (only in development) -->
+    <springProfile name="development">
+        <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.springframework.cloud.gateway" level="DEBUG"/>
+    </springProfile>
+    
+    <!-- Production logging configuration -->
+    <springProfile name="production">
+        <logger name="org.springframework.security" level="WARN"/>
+        <logger name="org.springframework.cloud.gateway" level="INFO"/>
+        <logger name="reactor.netty" level="WARN"/>
+        <logger name="io.netty" level="WARN"/>
+    </springProfile>
+    
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_APPLICATION"/>
+    </root>
+    
+    <!-- Shutdown hook to ensure logs are flushed -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+</configuration>

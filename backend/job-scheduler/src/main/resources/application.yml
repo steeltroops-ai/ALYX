@@ -1,0 +1,132 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: job-scheduler
+  datasource:
+    url: jdbc:postgresql://localhost:5432/alyx
+    username: alyx_user
+    password: alyx_password
+    driver-class-name: org.postgresql.Driver
+    # HikariCP Configuration for optimized connection pooling
+    hikari:
+      pool-name: JobSchedulerHikariPool
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        # Performance optimizations
+        jdbc:
+          batch_size: 25
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        connection:
+          provider_disables_autocommit: true
+        query:
+          fail_on_pagination_over_collection_fetch: true
+          in_clause_parameter_padding: true
+        generate_statistics: false
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+  # Redis Configuration
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    password: # Set if Redis has authentication
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 2
+        max-wait: 1000ms
+      shutdown-timeout: 100ms
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour default TTL
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: job-scheduler-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.alyx.jobscheduler: DEBUG
+    org.springframework.kafka: INFO
+    com.zaxxer.hikari: INFO
+    org.springframework.cache: DEBUG
+    
+# ALYX specific configuration
+alyx:
+  cache:
+    default-ttl: 3600 # 1 hour
+    job-status-ttl: 300 # 5 minutes
+    user-jobs-ttl: 900 # 15 minutes
+    ml-predictions-ttl: 21600 # 6 hours
+  performance:
+    monitoring:
+      enabled: true
+      metrics-collection-interval: 30000 # 30 seconds
+      slow-query-threshold: 1000 # 1 second
+    connection-pool:
+      leak-detection-enabled: true
+      health-check-interval: 60000 # 1 minute
+      
+# Actuator endpoints for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches,httptrace
+  endpoint:
+    health:
+      show-details: always
+    caches:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+      sla:
+        http.server.requests: 100ms, 500ms, 1s
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}

@@ -1,0 +1,24 @@
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    # Use embedded Redis for tests or mock
+  
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false # Disable service discovery for tests
+
+eureka:
+  client:
+    enabled: false # Disable Eureka for tests
+
+jwt:
+  secret: alyxTestSecretKeyForJWTTokenValidationThatShouldBeAtLeast256BitsLong
+  expiration: 86400000
+
+logging:
+  level:
+    com.alyx.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG

@@ -1,0 +1,112 @@
+spring:
+  profiles:
+    active: integration-test
+  
+  datasource:
+    # Will be overridden by Testcontainers
+    url: jdbc:postgresql://localhost:5432/alyx_test
+    username: test_user
+    password: test_password
+    driver-class-name: org.postgresql.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        
+  redis:
+    # Will be overridden by Testcontainers
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    
+  kafka:
+    # Will be overridden by Testcontainers
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: alyx-integration-test
+      auto-offset-reset: earliest
+    producer:
+      retries: 3
+      
+  cloud:
+    gateway:
+      routes:
+        - id: job-scheduler
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/jobs/**
+        - id: collaboration-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/collaboration/**
+        - id: data-processing
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/data/**
+        - id: visualization
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/visualization/**
+
+server:
+  port: 0 # Random port for tests
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.alyx: DEBUG
+    org.springframework.web: INFO
+    org.testcontainers: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ALYX specific configuration
+alyx:
+  security:
+    jwt:
+      secret: integration-test-secret-key-for-jwt-signing-must-be-long-enough
+      expiration: 3600000 # 1 hour for tests
+      
+  job-scheduler:
+    max-concurrent-jobs: 100
+    default-timeout-minutes: 30
+    
+  collaboration:
+    max-session-participants: 10
+    session-timeout-minutes: 60
+    
+  data-processing:
+    batch-size: 1000
+    max-processing-threads: 4
+    slow-query-threshold-ms: 1000
+    
+  visualization:
+    max-events-per-request: 1000
+    render-timeout-seconds: 5
+    
+  performance:
+    enable-metrics: true
+    enable-tracing: false # Disable for faster tests
+    
+# Test-specific overrides
+test:
+  containers:
+    postgres:
+      image: timescale/timescaledb-ha:pg15-latest
+    redis:
+      image: redis:7-alpine
+    kafka:
+      image: confluentinc/cp-kafka:7.4.0

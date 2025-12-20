@@ -1,0 +1,137 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "ALYX Job Scheduler Metrics",
+        "tags": [
+            "alyx",
+            "job-scheduler"
+        ],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Active Jobs",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "alyx_jobs_active_total",
+                        "legendFormat": "Active Jobs"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 6,
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            {
+                "id": 2,
+                "title": "Job Queue Size",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "alyx_job_queue_size",
+                        "legendFormat": "Queued Jobs"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 6,
+                    "x": 6,
+                    "y": 0
+                }
+            },
+            {
+                "id": 3,
+                "title": "Job Completion Rate",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(alyx_jobs_completed_total[5m])",
+                        "legendFormat": "Completed/sec"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                }
+            },
+            {
+                "id": 4,
+                "title": "Job Execution Time",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, rate(alyx_job_execution_duration_seconds_bucket[5m]))",
+                        "legendFormat": "95th percentile"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, rate(alyx_job_execution_duration_seconds_bucket[5m]))",
+                        "legendFormat": "50th percentile"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 8
+                }
+            },
+            {
+                "id": 5,
+                "title": "Resource Allocation",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "alyx_allocated_cores_total",
+                        "legendFormat": "Allocated Cores"
+                    },
+                    {
+                        "expr": "alyx_allocated_memory_bytes / 1024 / 1024 / 1024",
+                        "legendFormat": "Allocated Memory (GB)"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 8
+                }
+            },
+            {
+                "id": 6,
+                "title": "Database Connection Pool",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "hikaricp_connections_active{job=\"job-scheduler\"}",
+                        "legendFormat": "Active Connections"
+                    },
+                    {
+                        "expr": "hikaricp_connections_idle{job=\"job-scheduler\"}",
+                        "legendFormat": "Idle Connections"
+                    },
+                    {
+                        "expr": "hikaricp_connections_max{job=\"job-scheduler\"}",
+                        "legendFormat": "Max Connections"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 16
+                }
+            }
+        ],
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "refresh": "5s"
+    }
+}

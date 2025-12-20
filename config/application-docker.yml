@@ -1,0 +1,178 @@
+# ALYX Docker Compose Configuration
+# This configuration is used when running with Docker Compose
+
+spring:
+  profiles:
+    active: docker
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://postgres:5432/alyx
+    username: alyx_user
+    password: alyx_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      pool-name: AlyxHikariPool
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+  
+  # Redis Configuration
+  redis:
+    host: redis-node-1
+    port: 7001
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 2
+        max-wait: 2000ms
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: kafka:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: alyx-${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.alyx.*"
+    listener:
+      ack-mode: manual_immediate
+      concurrency: 2
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      zone: docker
+      version: ${spring.application.version:1.0.0}
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+    kafka:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.alyx: INFO
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN
+    root: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Security Configuration
+security:
+  jwt:
+    secret: alyx_jwt_secret_key_2024_docker_development
+    expiration: 86400000  # 24 hours
+    refresh-expiration: 604800000  # 7 days
+  cors:
+    allowed-origins: 
+      - "http://localhost:3001"
+      - "http://localhost:3000"
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+
+# Application Specific Configuration
+alyx:
+  # Performance Configuration
+  performance:
+    max-concurrent-jobs: 100
+    job-timeout-minutes: 30
+    batch-size: 500
+    thread-pool-size: 10
+  
+  # Cache Configuration
+  cache:
+    ttl-minutes: 15
+    max-entries: 1000
+    eviction-policy: LRU
+  
+  # File Storage Configuration
+  storage:
+    type: minio
+    minio:
+      endpoint: http://minio:9000
+      access-key: alyx_minio
+      secret-key: alyx_minio_password
+      bucket-name: alyx-data
+  
+  # ML Configuration
+  ml:
+    model-path: /app/models
+    prediction-cache-size: 100
+    training-data-retention-days: 30
+  
+  # Monitoring Configuration
+  monitoring:
+    metrics-interval-seconds: 60
+    health-check-interval-seconds: 120
+    alert-thresholds:
+      cpu-usage-percent: 85
+      memory-usage-percent: 90
+      disk-usage-percent: 95
+      response-time-ms: 5000

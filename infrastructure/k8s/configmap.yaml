@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alyx-config
+  namespace: alyx
+data:
+  # Database Configuration
+  POSTGRES_DB: "alyx"
+  POSTGRES_USER: "alyx_user"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  
+  # MinIO Configuration
+  MINIO_ENDPOINT: "http://minio-service:9000"
+  MINIO_ACCESS_KEY: "alyx_minio"
+  
+  # Service Discovery
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eureka-service:8761/eureka"
+  
+  # Application Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  
+  # Monitoring Configuration
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "always"
+  
+  # Logging Configuration
+  LOGGING_LEVEL_COM_ALYX: "INFO"
+  LOGGING_LEVEL_ROOT: "WARN"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alyx-secrets
+  namespace: alyx
+type: Opaque
+data:
+  # Base64 encoded passwords
+  POSTGRES_PASSWORD: YWx5eF9wYXNzd29yZA==  # alyx_password
+  MINIO_SECRET_KEY: YWx5eF9taW5pb19wYXNzd29yZA==  # alyx_minio_password
+  JWT_SECRET: YWx5eF9qd3Rfc2VjcmV0X2tleV8yMDI0  # alyx_jwt_secret_key_2024
