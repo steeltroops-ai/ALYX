@@ -3,45 +3,39 @@
 ## Current Issue
 The frontend is running but can't connect to the backend API because the backend services aren't started.
 
-## Quick Fix - Start Backend Services
+## 🚀 Quick Solutions
 
-### Option 1: Start Infrastructure + API Gateway (Recommended)
+### Option 1: Quick Start Script (Recommended)
+```powershell
+# Run this in the project root
+.\quick-start.ps1
+```
+This will:
+- Start essential infrastructure (PostgreSQL, Redis, Eureka)
+- Build and start the API Gateway
+- Connect your frontend to the backend
 
-1. **Start Infrastructure Services**:
-   ```bash
-   cd infrastructure
-   docker-compose up -d
-   ```
-   This starts: PostgreSQL, Redis, Kafka, MinIO, Eureka, Prometheus, Grafana
+### Option 2: Mock Backend (Fastest for Testing)
+```bash
+# In the frontend directory
+cd frontend
+npm install express cors
+node mock-backend.js
+```
+This starts a mock API server on port 8080 with demo data.
 
-2. **Wait for Services to Start** (about 30-60 seconds)
+### Option 3: Manual Full Setup
+```bash
+# 1. Start infrastructure
+cd infrastructure
+docker-compose up -d postgres redis-node-1 eureka
 
-3. **Start API Gateway** (the main service you need):
-   ```bash
-   cd backend/api-gateway
-   # If you have Maven installed:
-   mvn spring-boot:run
-   
-   # OR if you have Java 17+ installed:
-   java -jar target/api-gateway-1.0.0-SNAPSHOT.jar
-   ```
+# 2. Wait 30 seconds, then start API Gateway
+cd ../backend/api-gateway
+mvn spring-boot:run -Dspring-boot.run.profiles=docker
+```
 
-### Option 2: Quick Test with Mock Backend
-
-If you can't start the Java services, I can create a simple Node.js mock server:
-
-1. **Create mock server**:
-   ```bash
-   cd frontend
-   npm install express cors
-   ```
-
-2. **Start mock server** (I'll create this file):
-   ```bash
-   node mock-server.js
-   ```
-
-## What Each Service Does
+## What's Running Now
 
 - **Frontend (Port 3000)**: React UI - ✅ Already running
 - **API Gateway (Port 8080)**: Authentication & routing - ❌ Needs to start
@@ -50,13 +44,28 @@ If you can't start the Java services, I can create a simple Node.js mock server:
 ## Expected Result
 
 Once the API Gateway is running on port 8080:
-- Login with demo accounts will work
-- Registration will work
-- API calls will succeed
-- No more 404 errors
+- ✅ Login with demo accounts will work
+- ✅ Registration will work  
+- ✅ API calls will succeed
+- ✅ No more 404 errors
 
-## Demo Accounts (Once Backend is Running)
+## 🔑 Demo Accounts
 
-- **admin@alyx.physics.org** / `admin123`
-- **physicist@alyx.physics.org** / `physicist123`  
-- **analyst@alyx.physics.org** / `analyst123`
+- **admin@alyx.physics.org** / `admin123` (Admin access)
+- **physicist@alyx.physics.org** / `physicist123` (Physicist role)
+- **analyst@alyx.physics.org** / `analyst123` (Analyst role)
+
+## Troubleshooting
+
+**If you get "Docker not running" error:**
+- Start Docker Desktop
+- Wait for it to fully start
+- Try again
+
+**If you get Java errors:**
+- Make sure Java 17+ is installed
+- Check: `java -version`
+
+**If ports are busy:**
+- Stop other services: `docker-compose down`
+- Kill processes on port 8080: `netstat -ano | findstr :8080`
