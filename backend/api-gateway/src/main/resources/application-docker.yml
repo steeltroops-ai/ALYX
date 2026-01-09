@@ -1,0 +1,38 @@
+# Docker environment configuration
+spring:
+  datasource:
+    url: ${NEON_DATABASE_URL:jdbc:postgresql://postgres:5432/alyx}
+    username: ${NEON_DATABASE_USERNAME:alyx_user}
+    password: ${NEON_DATABASE_PASSWORD:alyx_password}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+      
+  redis:
+    host: redis
+    port: 6379
+    password: ${REDIS_PASSWORD:}
+    
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+
+# Eureka client configuration for Docker
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    hostname: api-gateway
+
+# Logging for Docker
+logging:
+  level:
+    com.alyx.gateway: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN

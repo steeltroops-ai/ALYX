@@ -1,17 +1,21 @@
 package com.alyx.gateway.service;
 
+import com.alyx.gateway.model.User;
 import com.alyx.gateway.model.UserRole;
 import com.alyx.gateway.model.Permission;
+import com.alyx.gateway.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -23,17 +27,34 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private RolePermissionService rolePermissionService;
+
     @Value("${jwt.secret:alyxSecretKeyForJWTTokenValidationThatShouldBeAtLeast256BitsLong}")
     private String secretKey;
 
     @Value("${jwt.expiration:86400000}") // 24 hours in milliseconds
     private Long jwtExpiration;
 
+    @Value("${jwt.refresh-expiration:604800000}") // 7 days in milliseconds
+    private Long refreshExpiration;
+
     /**
-     * Extract username from JWT token
+     * Extract user ID from JWT token
      */
-    public String extractUserId(String token) {
-        return extractClaim(token, Claims::getSubject);
+    public UUID extractUserId(String token) {
+        String userIdString = extractClaim(token, Claims::getSubject);
+        return UUID.fromString(userIdString);
+    }
+
+    /**
+     * Extract user email from JWT token
+     */
+    public String extractUserEmail(String token) {
+        return extractClaim(token, claims -> claims.get("email", String.class));
     }
 
     /**
@@ -103,19 +124,45 @@ public class JwtService {
     /**
      * Check if JWT token is expired
      */
-    private Boolean isTokenExpired(String token) {
+    public Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
     /**
-     * Validate JWT token
+     * Validate JWT token with database user verification and token invalidation check
      */
     public Boolean isTokenValid(String token) {
         try {
-            return !isTokenExpired(token);
+            if (isTokenExpired(token)) {
+                return false;
+            }
+            
+            // Verify user still exists and is active in database
+            UUID userId = extractUserId(token);
+            
+            // Check if token has been invalidated (e.g., due to role change)
+            if (rolePermissionService.isTokenInvalidated(userId)) {
+                return false;
+            }
+            
+            return userRepository.findById(userId)
+                    .map(user -> user.getIsActive() && !user.isAccountLocked())
+                    .orElse(false);
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Validate token and check if user has required role
+     */
+    public boolean validateTokenAndRole(String token, UserRole requiredRole) {
+        if (!isTokenValid(token)) {
+            return false;
+        }
+        
+        UserRole userRole = extractUserRoleEnum(token);
+        return userRole.getHierarchyLevel() >= requiredRole.getHierarchyLevel();
     }
 
     /**
@@ -127,7 +174,40 @@ public class JwtService {
     }
 
     /**
-     * Generate JWT token with enhanced claims
+     * Generate JWT token with comprehensive user and role claims
+     */
+    public String generateToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("firstName", user.getFirstName())
+                .claim("lastName", user.getLastName())
+                .claim("organization", user.getOrganization())
+                .claim("role", user.getRole().getName())
+                .claim("permissions", user.getRole().getPermissions())
+                .claim("hierarchyLevel", user.getRole().getHierarchyLevel())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Generate refresh token with extended expiration
+     */
+    public String generateRefreshToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("tokenType", "refresh")
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Generate JWT token with enhanced claims (backward compatibility)
      */
     public String generateToken(String userId, String role, String organization, List<String> permissions) {
         return Jwts.builder()
@@ -149,14 +229,60 @@ public class JwtService {
     }
 
     /**
-     * Validate token and check if user has required role
+     * Extract hierarchy level from JWT token
      */
-    public boolean validateTokenAndRole(String token, UserRole requiredRole) {
-        if (!isTokenValid(token)) {
+    public Integer extractHierarchyLevel(String token) {
+        return extractClaim(token, claims -> claims.get("hierarchyLevel", Integer.class));
+    }
+
+    /**
+     * Extract first name from JWT token
+     */
+    public String extractFirstName(String token) {
+        return extractClaim(token, claims -> claims.get("firstName", String.class));
+    }
+
+    /**
+     * Extract last name from JWT token
+     */
+    public String extractLastName(String token) {
+        return extractClaim(token, claims -> claims.get("lastName", String.class));
+    }
+
+    /**
+     * Check if token is a refresh token
+     */
+    public boolean isRefreshToken(String token) {
+        try {
+            String tokenType = extractClaim(token, claims -> claims.get("tokenType", String.class));
+            return "refresh".equals(tokenType);
+        } catch (Exception e) {
             return false;
         }
-        
-        UserRole userRole = extractUserRoleEnum(token);
-        return userRole.getHierarchyLevel() >= requiredRole.getHierarchyLevel();
+    }
+
+    /**
+     * Validate refresh token with invalidation check
+     */
+    public Boolean isRefreshTokenValid(String refreshToken) {
+        try {
+            if (!isRefreshToken(refreshToken) || isTokenExpired(refreshToken)) {
+                return false;
+            }
+            
+            // Verify user still exists and is active in database
+            UUID userId = extractUserId(refreshToken);
+            
+            // Check if token has been invalidated (e.g., due to role change)
+            if (rolePermissionService.isTokenInvalidated(userId)) {
+                return false;
+            }
+            
+            return userRepository.findById(userId)
+                    .map(user -> user.getIsActive() && !user.isAccountLocked())
+                    .orElse(false);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

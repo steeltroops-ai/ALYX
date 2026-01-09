@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
@@ -95,7 +96,7 @@ public class AuthenticationFilter implements GatewayFilter {
             }
 
             // Extract user information
-            String userId = jwtService.extractUserId(token);
+            UUID userId = jwtService.extractUserId(token);
             String userRole = jwtService.extractUserRole(token);
             String organization = jwtService.extractOrganization(token);
             UserRole roleEnum = jwtService.extractUserRoleEnum(token);
@@ -103,24 +104,24 @@ public class AuthenticationFilter implements GatewayFilter {
             // Check role-based access control
             if (!hasRequiredRole(request, roleEnum)) {
                 auditService.logSecurityEvent("ACCESS_DENIED", request.getURI().getPath(), 
-                    userId, "Insufficient role privileges: " + userRole);
+                    userId.toString(), "Insufficient role privileges: " + userRole);
                 return onError(exchange, "Insufficient privileges for this operation", HttpStatus.FORBIDDEN);
             }
             
             // Check permission-based access control
             if (!hasRequiredPermission(request, token)) {
                 auditService.logSecurityEvent("PERMISSION_DENIED", request.getURI().getPath(), 
-                    userId, "Missing required permission");
+                    userId.toString(), "Missing required permission");
                 return onError(exchange, "Missing required permission for this operation", HttpStatus.FORBIDDEN);
             }
             
             // Log successful authentication
             auditService.logSecurityEvent("ACCESS_GRANTED", request.getURI().getPath(), 
-                userId, "Successful authentication and authorization");
+                userId.toString(), "Successful authentication and authorization");
             
             // Add user information to headers for downstream services
             ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                .header("X-User-Id", userId)
+                .header("X-User-Id", userId.toString())
                 .header("X-User-Role", userRole)
                 .header("X-User-Organization", organization)
                 .header("X-Correlation-ID", generateCorrelationId())

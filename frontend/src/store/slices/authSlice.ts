@@ -1,9 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthState, User, LoginCredentials, LoginResponse, RegisterCredentials, RegisterResponse } from '../../types/auth';
 
+// Safe localStorage access for SSR compatibility
+const getStoredToken = (): string | null => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+        return localStorage.getItem('token');
+    }
+    return null;
+};
+
 const initialState: AuthState = {
     user: null,
-    token: localStorage.getItem('token'),
+    token: getStoredToken(),
     isAuthenticated: false,
     isLoading: false,
     error: null,

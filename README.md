@@ -25,68 +25,69 @@ The system follows a microservices architecture with the following components:
 - **Apache Spark**: Distributed data processing for collision events
 - **Apache Kafka**: Event streaming for real-time data pipeline
 
-### Infrastructure
-- **PostgreSQL + TimescaleDB + PostGIS**: Time-series and spatial data storage
-- **Redis Cluster**: Distributed caching and session management
-- **MinIO**: Object storage for large datasets
-- **Docker**: Containerization for all services
-
-## Quick Start
+## Quick Start (Local Development)
 
 ### Prerequisites
 - Java 17+
 - Node.js 18+
-- Docker and Docker Compose
 - Maven 3.8+
 
-### Development Setup
+### One-Command Setup
 
-1. **Start Infrastructure Services**
+```powershell
+# Start both frontend and backend services
+.\scripts\run-local.ps1
+
+# Or start individually
+.\scripts\run-local.ps1 -Frontend    # Frontend only
+.\scripts\run-local.ps1 -Backend     # Backend only
+
+# Build and start
+.\scripts\run-local.ps1 -Build
+
+# Stop all services
+.\scripts\run-local.ps1 -Stop
+```
+
+### Manual Setup (Alternative)
+
+1. **Build Backend Services**
    ```bash
-   cd infrastructure
-   docker-compose up -d
+   mvn clean compile
    ```
 
-2. **Build Backend Services**
+2. **Start Backend Services** (in separate terminals)
    ```bash
-   mvn clean install
-   ```
-
-3. **Start Backend Services** (in separate terminals)
-   ```bash
-   # API Gateway
    cd backend/api-gateway && mvn spring-boot:run
-   
-   # Job Scheduler
    cd backend/job-scheduler && mvn spring-boot:run
-   
-   # Other services...
+   # ... other services
    ```
 
-4. **Start Frontend**
+3. **Start Frontend**
    ```bash
-   cd frontend
-   npm install
-   npm run dev
+   cd frontend && npm install && npm run dev
    ```
 
-5. **Access the Application**
-   - Frontend: http://localhost:3000
-   - API Gateway: http://localhost:8080
-   - Eureka Dashboard: http://localhost:8761
+### Access the Application
+- **Frontend**: http://localhost:3000
+- **API Gateway**: http://localhost:8080
+- **Other Services**: Ports 8081-8085
 
 ## Testing
 
-### Backend Testing
 ```bash
+# Backend tests
 mvn test
+
+# Frontend tests
+cd frontend && npm test
 ```
 
-### Frontend Testing
-```bash
-cd frontend
-npm test
-```
+## Demo Accounts
+
+- **admin@alyx.physics.org** / `admin123` (Admin access)
+- **physicist@alyx.physics.org** / `physicist123` (Physicist role)
+- **analyst@alyx.physics.org** / `analyst123` (Analyst role)
 
 ## Performance Targets
 
@@ -100,10 +101,8 @@ npm test
 ### Backend
 - Spring Boot 3.2
 - Spring Cloud 2023.0
-- Apache Kafka 3.5
-- PostgreSQL with TimescaleDB and PostGIS
-- Redis 7
-- Apache Spark 3.5
+- PostgreSQL (local/embedded for development)
+- In-memory caching for development
 
 ### Frontend
 - React 18

@@ -3,6 +3,8 @@ package com.alyx.gateway.config;
 import com.alyx.gateway.filter.AuthenticationFilter;
 import com.alyx.gateway.filter.InputValidationFilter;
 import com.alyx.gateway.filter.RateLimitingFilter;
+import com.alyx.gateway.filter.ReactiveAuthorizationFilter;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -26,18 +28,26 @@ import java.util.List;
  */
 @Configuration
 @EnableWebFluxSecurity
+@EnableConfigurationProperties({
+    PasswordSecurityProperties.class,
+    AuditProperties.class,
+    RateLimitingProperties.class
+})
 public class SecurityConfig {
 
     private final AuthenticationFilter authenticationFilter;
     private final InputValidationFilter inputValidationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final ReactiveAuthorizationFilter reactiveAuthorizationFilter;
 
     public SecurityConfig(AuthenticationFilter authenticationFilter,
                          InputValidationFilter inputValidationFilter,
-                         RateLimitingFilter rateLimitingFilter) {
+                         RateLimitingFilter rateLimitingFilter,
+                         ReactiveAuthorizationFilter reactiveAuthorizationFilter) {
         this.authenticationFilter = authenticationFilter;
         this.inputValidationFilter = inputValidationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
+        this.reactiveAuthorizationFilter = reactiveAuthorizationFilter;
     }
 
     @Bean
@@ -49,18 +59,15 @@ public class SecurityConfig {
             // Security headers - minimal configuration for Spring Security 6.x
             .headers(headers -> headers.disable())
             
-            // Authorization rules
+            // Add custom authorization filter
+            .addFilterBefore(reactiveAuthorizationFilter, SecurityWebFiltersOrder.AUTHORIZATION)
+            
+            // Authorization rules - now handled by custom filter for fine-grained permission control
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
-                .pathMatchers("/api/auth/**").permitAll()
+                .pathMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .pathMatchers("/fallback/**").permitAll()
-                .pathMatchers("/api/admin/**").hasRole("ADMIN")
-                .pathMatchers("/api/system/**").hasRole("ADMIN")
-                .pathMatchers("/api/users/**").hasRole("ADMIN")
-                .pathMatchers("/api/jobs/submit").hasAnyRole("PHYSICIST", "ADMIN")
-                .pathMatchers("/api/jobs/cancel").hasAnyRole("PHYSICIST", "ADMIN")
-                .pathMatchers("/api/data/write").hasAnyRole("PHYSICIST", "ADMIN")
-                .pathMatchers("/api/data/delete").hasRole("ADMIN")
+                .pathMatchers("/api/public/**").permitAll()
                 .anyExchange().authenticated()
             )
             

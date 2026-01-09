@@ -1,0 +1,66 @@
+# Kubernetes environment configuration
+spring:
+  datasource:
+    url: ${NEON_DATABASE_URL}
+    username: ${NEON_DATABASE_USERNAME}
+    password: ${NEON_DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 25
+      minimum-idle: 5
+      connection-timeout: 30000
+      
+  redis:
+    host: ${REDIS_SERVICE_HOST:redis-service}
+    port: ${REDIS_SERVICE_PORT:6379}
+    password: ${REDIS_PASSWORD}
+    
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+
+# Eureka client configuration for Kubernetes
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-service:8761/eureka/}
+  instance:
+    prefer-ip-address: false
+    hostname: ${HOSTNAME:api-gateway}
+    instance-id: ${spring.application.name}:${HOSTNAME:api-gateway}:${server.port}
+
+# Security configuration for production
+security:
+  password:
+    bcrypt-rounds: 14  # Higher rounds for production
+  rate-limiting:
+    login-attempts: 3  # Stricter rate limiting
+    lockout-duration: 1800  # 30 minutes
+  audit:
+    retention-days: 365  # Longer retention for production
+
+# Management endpoints for Kubernetes
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging for Kubernetes
+logging:
+  level:
+    com.alyx.gateway: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"

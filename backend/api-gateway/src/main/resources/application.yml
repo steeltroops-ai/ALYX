@@ -5,6 +5,46 @@ spring:
   application:
     name: api-gateway
   
+  # Database configuration for Neon PostgreSQL
+  datasource:
+    url: ${NEON_DATABASE_URL:jdbc:postgresql://localhost:5432/alyx}
+    username: ${NEON_DATABASE_USERNAME:alyx_user}
+    password: ${NEON_DATABASE_PASSWORD:alyx_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      pool-name: AlyxAuthPool
+      
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        jdbc:
+          time_zone: UTC
+        temp:
+          use_jdbc_metadata_defaults: false
+    show-sql: false
+    open-in-view: false
+    
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+    baseline-version: 1
+    baseline-description: Initial baseline
+  
   cloud:
     gateway:
       discovery:
@@ -95,12 +135,31 @@ security:
   max-login-attempts: 5
   lockout-duration-minutes: 15
   
+  # Password security configuration
+  password:
+    bcrypt-rounds: ${BCRYPT_ROUNDS:12}
+    min-length: 8
+    require-uppercase: true
+    require-lowercase: true
+    require-numbers: true
+    require-special-chars: true
+  
   # Rate limiting configuration
   rate-limiting:
     default-requests-per-minute: 100
     premium-requests-per-minute: 500
     admin-requests-per-minute: 1000
     window-size-minutes: 1
+    login-attempts: 5
+    lockout-duration: 900 # 15 minutes in seconds
+    
+  # Audit logging configuration
+  audit:
+    enabled: true
+    retention-days: 90
+    log-successful-logins: true
+    log-failed-attempts: true
+    log-suspicious-activity: true
     
   # Input validation configuration
   input-validation:

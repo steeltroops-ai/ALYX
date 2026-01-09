@@ -1,5 +1,9 @@
 package com.alyx.gateway.model;
 
+import java.util.List;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 /**
  * System permissions for fine-grained access control
  * 
@@ -48,5 +52,15 @@ public enum Permission {
 
     public String getDescription() {
         return description;
+    }
+    
+    /**
+     * Get all permissions for a specific user role
+     */
+    public static List<String> getPermissionsForRole(UserRole userRole) {
+        return Arrays.stream(Permission.values())
+                .filter(userRole::hasPermission)
+                .map(Permission::name)
+                .collect(Collectors.toList());
     }
 }
